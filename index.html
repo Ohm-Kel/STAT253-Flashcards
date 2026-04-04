@@ -4,7 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#020617">
+<meta name="description" content="STAT 253 probability & distributions flashcards — Lectures 5–10. Study, track progress, search.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>STAT 253 – Flashcards</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon.svg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=IBM+Plex+Mono:wght@400;600&family=Source+Sans+3:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
@@ -61,6 +67,15 @@ tailwind.config = {
   .katex-inline .katex { font-size: 0.95em !important; }
   .dots-scroll::-webkit-scrollbar { height: 4px; }
   .dots-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
+  .sr-only {
+    position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+    overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+  }
+  .search-mark { background: rgba(251, 191, 36, 0.35); color: rgb(254 243 199); }
+  @media (prefers-reduced-motion: reduce) {
+    .card-inner { transition: none !important; }
+    .animate-fade-in, .animate-slide-up { animation: none !important; opacity: 1 !important; transform: none !important; }
+  }
 </style>
 </head>
 <body class="min-h-[100dvh] overflow-x-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 font-sans text-slate-100 antialiased selection:bg-blue-500/30 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)]">
@@ -543,22 +558,37 @@ color:"#134e4a",accent:"#5eead4"},
 ];
 
 // ---- State ----
-let cur=0,flp=false,known=new Set(),cat="All",srch="";
+const APP_VERSION="1.3.0",BUILD_DATE="2026-04-03",LS_KEY="stat253-fc-v1";
+let cur=0,flp=false,known=new Set(),cat="All",srch="",showSearchDrop=false,learnFilter="all",perm=[],searchSel=0;
 const cats=["All","Discrete","Continuous","Joint","Functions"];
 const cc={All:"#3b82f6",Discrete:"#9333ea",Continuous:"#059669",Joint:"#ec4899",Functions:"#06b6d4"};
 
-function getF(){let f=CARDS;if(cat!=="All")f=f.filter(c=>c.cat===cat);if(srch){const q=srch.toLowerCase();f=f.filter(c=>c.title.toLowerCase().includes(q)||c.front.toLowerCase().includes(q)||c.back.toLowerCase().includes(q)||c.ex.toLowerCase().includes(q));}return f;}
+function getF(){let f=CARDS;if(cat!=="All")f=f.filter(c=>c.cat===cat);if(srch){const q=srch.toLowerCase();f=f.filter(c=>c.title.toLowerCase().includes(q)||c.front.toLowerCase().includes(q)||c.back.toLowerCase().includes(q)||c.ex.toLowerCase().includes(q));}if(learnFilter==="learned")f=f.filter(c=>known.has(CARDS.indexOf(c)));else if(learnFilter==="unlearned")f=f.filter(c=>!known.has(CARDS.indexOf(c)));return f;}
 function escAttr(s){return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
+function highlightMatch(s,q){const t=String(s);if(!q||!String(q).trim())return escAttr(t);const ql=String(q).trim().toLowerCase();if(!ql.length)return escAttr(t);const low=t.toLowerCase();let out="",i=0;while(i<t.length){const j=low.indexOf(ql,i);if(j<0){out+=escAttr(t.slice(i));break;}out+=escAttr(t.slice(i,j))+'<mark class="search-mark rounded px-0.5">'+escAttr(t.slice(j,j+ql.length))+"</mark>";i=j+ql.length;}return out;}
+function persistState(){try{localStorage.setItem(LS_KEY,JSON.stringify({known:[...known],cat,learnFilter}));}catch(e){}}
+function loadState(){try{let raw=localStorage.getItem(LS_KEY);if(!raw)raw=localStorage.getItem("stat253-fc");const j=JSON.parse(raw||"null");if(!j)return;if(Array.isArray(j.known))known=new Set(j.known);if(typeof j.cat==="string")cat=j.cat;if(typeof j.learnFilter==="string")learnFilter=j.learnFilter;}catch(e){}}
+function exportProgress(){const data={v:1,app:APP_VERSION,known:[...known],cat,learnFilter,exported:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="stat253-flashcards-progress.json";a.click();URL.revokeObjectURL(a.href);}
+function importProgress(ev){const file=ev.target.files&&ev.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(Array.isArray(d.known))known=new Set(d.known);if(typeof d.cat==="string")cat=d.cat;if(typeof d.learnFilter==="string")learnFilter=d.learnFilter;perm=[];cur=0;flp=false;persistState();render();}catch(e){alert("Could not import that file. Use a JSON export from this app.");}ev.target.value="";};r.readAsText(file);}
+function shuffleDeck(){const f=getF();if(f.length<2)return;perm=[...Array(f.length).keys()];for(let i=f.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[perm[i],perm[j]]=[perm[j],perm[i]];}cur=0;flp=false;render();}
+function randomCard(){const f=getF();if(!f.length)return;cur=Math.floor(Math.random()*f.length);flp=false;render();}
+function setLearnFilter(lf){learnFilter=lf;cur=0;flp=false;perm=[];render();persistState();}
 
 function render(){
 const prev=document.activeElement;
 const wasSearch=prev&&prev.id==="card-search-input";
 let selStart=0,selEnd=0;
 if(wasSearch&&typeof prev.selectionStart==="number"){selStart=prev.selectionStart;selEnd=prev.selectionEnd;}
-const a=document.getElementById('app'),f=getF(),c=f[cur];
-let dots=f.map((x,i)=>{const g=CARDS.indexOf(x),ac=i===cur,kn=known.has(g);const bg=kn?'#4ade80':ac?(c?.color||'#3b82f6'):'#475569';const wide=ac?'min-w-[1.35rem] w-7':'';return`<button type="button" aria-label="Go to card ${i+1}" class="h-2 shrink-0 rounded-full transition-all duration-300 ease-out ${wide} ${ac?'rounded-md scale-100':'hover:opacity-90'} ${kn?'ring-2 ring-emerald-400/40 ring-offset-2 ring-offset-slate-950':""}" style="background:${bg}" onclick="goTo(${i})"></button>`;}).join('');
+const a=document.getElementById('app'),f=getF();
+if(perm.length!==f.length){perm=[...Array(f.length).keys()];}
+if(f.length)cur=Math.min(Math.max(0,cur),f.length-1);else cur=0;
+const c=f.length?f[perm[cur]]:undefined;
+let dots=f.map((_,i)=>{const x=f[perm[i]],g=CARDS.indexOf(x),ac=i===cur,kn=known.has(g);const bg=kn?'#4ade80':ac?(c?.color||'#3b82f6'):'#475569';const wide=ac?'min-w-[1.35rem] w-7':'';return`<button type="button" aria-label="Go to card ${i+1}" class="h-2 shrink-0 rounded-full transition-all duration-300 ease-out ${wide} ${ac?'rounded-md scale-100':'hover:opacity-90'} ${kn?'ring-2 ring-emerald-400/40 ring-offset-2 ring-offset-slate-950':""}" style="background:${bg}" onclick="goTo(${i})"></button>`;}).join('');
 let filt=cats.map(ct=>{const on=cat===ct;return`<button type="button" class="shrink-0 touch-manipulation rounded-full border px-3.5 py-2.5 min-h-[44px] text-xs sm:text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${on?'shadow-md shadow-black/30':''}" style="--cat-color:${cc[ct]};${on?`border-color:var(--cat-color);background:color-mix(in srgb,var(--cat-color) 22%,transparent);color:var(--cat-color)`:'border-slate-600/90 bg-slate-800/90 text-slate-400 hover:border-slate-500 hover:bg-slate-800'}" onclick="setCat('${ct}')">${ct}${ct!=='All'?' ('+CARDS.filter(x=>x.cat===ct).length+')':''}</button>`;}).join('');
+const lfRows=[{id:"all",lab:"All cards"},{id:"learned",lab:"\u2713 Learned"},{id:"unlearned",lab:"To learn"}];
+let learnFilt=lfRows.map(r=>{const on=learnFilter===r.id;return`<button type="button" class="shrink-0 touch-manipulation rounded-full border px-3 py-2 min-h-[40px] text-[11px] sm:text-xs font-semibold transition-all duration-200 active:scale-[0.98] ${on?'border-emerald-500/70 bg-emerald-500/15 text-emerald-200 shadow-md shadow-black/20':'border-slate-600/90 bg-slate-800/90 text-slate-400 hover:border-slate-500'}" onclick="setLearnFilter('${r.id}')">${r.lab}</button>`;}).join('');
 const lc=f.filter(x=>known.has(CARDS.indexOf(x))).length,pr=f.length?(lc/f.length*100):0;
+const liveStatus=!f.length?"No cards match the current filters.":`Showing card ${cur+1} of ${f.length}. ${lc} learned in this deck.`;
 let ch='';
 if(!c){ch=`<div class="animate-fade-in rounded-2xl border border-slate-700/60 bg-slate-900/50 px-6 py-14 text-center text-slate-400"><p class="font-serif text-lg text-slate-200">No cards found</p><p class="mt-2 text-sm leading-relaxed">Try another search or category.</p></div>`;}
 else{
@@ -600,22 +630,32 @@ ${mv}
 </div>
 <p class="mt-3 text-center font-mono text-xs text-slate-500 sm:mt-4">${cur+1} / ${f.length}</p></div>`;}
 let searchDropdownHtml="";
-if(srch.trim().length>0){
+if(showSearchDrop&&srch.trim().length>0){
 const m=getF();
+if(m.length)searchSel=Math.min(Math.max(0,searchSel),m.length-1);else searchSel=0;
 if(!m.length){searchDropdownHtml='<li class="px-4 py-3.5 text-sm text-slate-400" role="option">No matching cards in this filter.</li>';}
-else{searchDropdownHtml=m.map((card,idx)=>`<li role="presentation"><button type="button" role="option" class="flex w-full touch-manipulation items-start gap-3 px-3 py-3 text-left transition-colors sm:px-4 ${idx===cur?"bg-slate-700/50":"hover:bg-slate-700/40 active:bg-slate-600/50"}" onmousedown="event.preventDefault();selectSearchHit(${idx})" aria-selected="${idx===cur}"><span class="mt-0.5 shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/95" style="background:${card.color}cc">${escAttr(card.cat)}</span><span class="min-w-0 flex-1"><span class="block text-sm font-semibold leading-snug text-slate-50">${escAttr(card.title)}</span><span class="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-400">${escAttr(card.front)}</span></span></button></li>`).join("");}
+else{searchDropdownHtml=m.map((card,idx)=>`<li role="presentation"><button type="button" role="option" id="search-opt-${idx}" class="flex w-full touch-manipulation items-start gap-3 px-3 py-3 text-left transition-colors sm:px-4 ${idx===searchSel?"bg-slate-700/60 ring-1 ring-inset ring-blue-500/35":"hover:bg-slate-700/40 active:bg-slate-600/50"}" onmousedown="event.preventDefault();selectSearchHit(${idx})" aria-selected="${idx===searchSel}"><span class="mt-0.5 shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/95" style="background:${card.color}cc">${escAttr(card.cat)}</span><span class="min-w-0 flex-1"><span class="block text-sm font-semibold leading-snug text-slate-50">${highlightMatch(card.title,srch)}</span><span class="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-400">${highlightMatch(card.front,srch)}</span></span></button></li>`).join("");}
 }
 a.innerHTML=`
 <header class="mb-5 w-full text-center sm:mb-6">
 <h1 class="font-serif text-2xl font-normal tracking-tight text-slate-50 sm:text-3xl">\ud83d\udcca STAT 253 \u2013 Distributions</h1>
 <p class="mt-1.5 text-sm italic text-slate-400 sm:text-base">Lectures 5\u201310 \u00b7 Tap to flip \u00b7 ${CARDS.length} cards</p>
 </header>
-<div class="group relative z-20 mb-4 w-full">
+<div id="fc-live" class="sr-only" aria-live="polite" aria-atomic="true">${escAttr(liveStatus)}</div>
+<div class="group relative z-20 mb-3 w-full">
 <span class="pointer-events-none absolute left-3.5 top-[1.125rem] z-10 text-slate-500" aria-hidden="true">\ud83d\udd0d</span>
-<input id="card-search-input" class="peer w-full rounded-2xl border border-slate-600/80 bg-slate-950/80 py-3.5 pl-11 pr-4 text-base text-slate-100 shadow-inner outline-none ring-0 transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="Search cards\u2026" value="${escAttr(srch)}" oninput="onSrch(this.value)" aria-label="Search flashcards" aria-autocomplete="list" aria-controls="${srch.trim().length>0?"search-suggestions":""}" aria-expanded="${srch.trim().length>0?"true":"false"}" role="combobox">
-${srch.trim().length>0?'<ul id="search-suggestions" role="listbox" class="absolute left-0 right-0 top-[calc(100%+0.375rem)] z-30 max-h-[min(50vh,18rem)] overflow-y-auto overflow-x-hidden rounded-2xl border border-slate-600/90 bg-slate-900/98 py-1.5 shadow-2xl shadow-black/40 ring-1 ring-white/5 backdrop-blur-md">'+searchDropdownHtml+"</ul>":""}
+<input id="card-search-input" class="peer w-full rounded-2xl border border-slate-600/80 bg-slate-950/80 py-3.5 pl-11 pr-4 text-base text-slate-100 shadow-inner outline-none ring-0 transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="Search cards\u2026" value="${escAttr(srch)}" oninput="onSrch(this.value)" onkeydown="onSearchKey(event)" onfocus="onSearchFocus()" onblur="onSearchBlur()" aria-label="Search flashcards" aria-autocomplete="list" aria-controls="${showSearchDrop&&srch.trim().length>0?"search-suggestions":""}" aria-expanded="${showSearchDrop&&srch.trim().length>0?"true":"false"}" role="combobox">
+${showSearchDrop&&srch.trim().length>0?'<ul id="search-suggestions" role="listbox" class="absolute left-0 right-0 top-[calc(100%+0.375rem)] z-30 max-h-[min(50vh,18rem)] overflow-y-auto overflow-x-hidden rounded-2xl border border-slate-600/90 bg-slate-900/98 py-1.5 shadow-2xl shadow-black/40 ring-1 ring-white/5 backdrop-blur-md">'+searchDropdownHtml+"</ul>":""}
 </div>
-<div class="mb-4 flex w-full flex-wrap justify-center gap-2 sm:gap-2.5">${filt}</div>
+<div class="mb-3 flex w-full flex-wrap justify-center gap-2 sm:gap-2.5">${filt}</div>
+<div class="mb-3 flex w-full flex-wrap justify-center gap-2">${learnFilt}</div>
+<div class="mb-4 flex w-full flex-wrap items-center justify-center gap-2">
+<button type="button" class="touch-manipulation rounded-xl border border-slate-600 bg-slate-800/90 px-3 py-2.5 min-h-[44px] text-xs font-semibold text-slate-200 shadow transition hover:bg-slate-700 active:scale-[0.98] sm:text-sm" onclick="shuffleDeck()" title="Randomize order of cards in the current filter">Shuffle deck</button>
+<button type="button" class="touch-manipulation rounded-xl border border-slate-600 bg-slate-800/90 px-3 py-2.5 min-h-[44px] text-xs font-semibold text-slate-200 shadow transition hover:bg-slate-700 active:scale-[0.98] sm:text-sm" onclick="randomCard()" title="Jump to a random card">Random card</button>
+<button type="button" class="touch-manipulation rounded-xl border border-slate-600 bg-slate-800/90 px-3 py-2.5 min-h-[44px] text-xs font-semibold text-slate-200 shadow transition hover:bg-slate-700 active:scale-[0.98] sm:text-sm" onclick="exportProgress()">Export progress</button>
+<button type="button" class="touch-manipulation rounded-xl border border-slate-600 bg-slate-800/90 px-3 py-2.5 min-h-[44px] text-xs font-semibold text-slate-200 shadow transition hover:bg-slate-700 active:scale-[0.98] sm:text-sm" onclick="document.getElementById('import-file').click()">Import</button>
+<input id="import-file" type="file" accept="application/json,.json" class="sr-only" aria-label="Import progress JSON file" onchange="importProgress(event)"/>
+</div>
 <div class="mb-3 flex w-full items-center gap-3 sm:mb-4">
 <div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-700/80 shadow-inner">
 <div class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-lime-400 transition-[width] duration-500 ease-out" style="width:${pr}%"></div>
@@ -623,7 +663,11 @@ ${srch.trim().length>0?'<ul id="search-suggestions" role="listbox" class="absolu
 <span class="min-w-[3.25rem] text-right font-mono text-xs font-semibold text-emerald-400 sm:text-sm">${lc}/${f.length}</span>
 </div>
 <div class="dots-scroll mb-4 flex max-w-full gap-1.5 overflow-x-auto overflow-y-hidden pb-1 [-ms-overflow-style:none] [scrollbar-width:thin] sm:mb-5 sm:flex-wrap sm:justify-center sm:overflow-x-visible">${dots}</div>
-${ch}`;
+${ch}
+<footer class="mt-8 border-t border-slate-800/80 pt-6 text-center text-[11px] text-slate-500 sm:text-xs">
+<p>v${APP_VERSION} \u00b7 ${BUILD_DATE}</p>
+<p class="mt-1.5 max-w-md mx-auto leading-relaxed">Progress is saved in this browser. Use <strong class="font-medium text-slate-400">Export</strong> to back up or move to another device.</p>
+</footer>`;
 if(wasSearch){
 const inp=document.getElementById("card-search-input");
 if(inp){
@@ -635,11 +679,13 @@ try{inp.setSelectionRange(Math.min(selStart,L),Math.min(selEnd,L));}catch(e){}
 }
 
 function selectSearchHit(filteredIdx){
+showSearchDrop=false;
 const list=getF();
 const card=list[filteredIdx];
 if(!card)return;
 srch=card.title;
 flp=false;
+perm=[];
 const next=getF();
 cur=next.findIndex(c=>c===card);
 if(cur<0)cur=0;
@@ -651,12 +697,23 @@ function doFlip(){flp=!flp;render()}
 function goNext(){if(cur<getF().length-1){cur++;flp=false;render()}}
 function goPrev(){if(cur>0){cur--;flp=false;render()}}
 function goTo(i){cur=i;flp=false;render()}
-function togKnown(){const f=getF(),g=CARDS.indexOf(f[cur]);known.has(g)?known.delete(g):known.add(g);render()}
-function setCat(c2){cat=c2;cur=0;flp=false;render()}
-function onSrch(v){srch=v;cur=0;flp=false;render()}
+function togKnown(){const f=getF(),g=CARDS.indexOf(f[perm[cur]]);known.has(g)?known.delete(g):known.add(g);render();persistState();}
+function setCat(c2){cat=c2;cur=0;flp=false;perm=[];render();persistState();}
+function onSrch(v){srch=v;showSearchDrop=true;searchSel=0;cur=0;flp=false;perm=[];render();}
+function onSearchKey(e){
+if(!showSearchDrop||!srch.trim())return;
+const m=getF();
+if(e.key==="ArrowDown"){e.preventDefault();if(m.length)searchSel=Math.min(searchSel+1,m.length-1);render();}
+else if(e.key==="ArrowUp"){e.preventDefault();if(m.length)searchSel=Math.max(searchSel-1,0);render();}
+else if(e.key==="Enter"){e.preventDefault();if(m.length)selectSearchHit(searchSel);}
+else if(e.key==="Escape"){e.preventDefault();showSearchDrop=false;render();}
+}
+function onSearchFocus(){if(!showSearchDrop){showSearchDrop=true;render()}}
+function onSearchBlur(){setTimeout(()=>{const ae=document.activeElement,p=document.getElementById("search-suggestions");if(ae&&ae.id==="card-search-input")return;if(p&&ae&&p.contains(ae))return;showSearchDrop=false;render()},0)}
 document.addEventListener('keydown',e=>{const t=e.target;if(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable)return;if(e.key==='ArrowRight')goNext();else if(e.key==='ArrowLeft')goPrev();else if(e.key===' '||e.key==='Enter'){if(t.tagName==='BUTTON')return;e.preventDefault();doFlip()}});
 let ts=0;document.addEventListener('touchstart',e=>{ts=e.changedTouches[0].screenX});
 document.addEventListener('touchend',e=>{const d=e.changedTouches[0].screenX-ts;if(Math.abs(d)>60){d<0?goNext():goPrev()}});
+loadState();
 render();
 </script>
 </body>

@@ -1,0 +1,17 @@
+{
+  "name": "STAT 253 – Distributions Flashcards",
+  "short_name": "STAT 253 FC",
+  "description": "Probability & distributions flashcards (Lectures 5–10)",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "icons": [
+    {
+      "src": "icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
