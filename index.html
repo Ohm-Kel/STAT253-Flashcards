@@ -568,8 +568,6 @@ function escAttr(s){return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;"
 function highlightMatch(s,q){const t=String(s);if(!q||!String(q).trim())return escAttr(t);const ql=String(q).trim().toLowerCase();if(!ql.length)return escAttr(t);const low=t.toLowerCase();let out="",i=0;while(i<t.length){const j=low.indexOf(ql,i);if(j<0){out+=escAttr(t.slice(i));break;}out+=escAttr(t.slice(i,j))+'<mark class="search-mark rounded px-0.5">'+escAttr(t.slice(j,j+ql.length))+"</mark>";i=j+ql.length;}return out;}
 function persistState(){try{localStorage.setItem(LS_KEY,JSON.stringify({known:[...known],cat,learnFilter}));}catch(e){}}
 function loadState(){try{let raw=localStorage.getItem(LS_KEY);if(!raw)raw=localStorage.getItem("stat253-fc");const j=JSON.parse(raw||"null");if(!j)return;if(Array.isArray(j.known))known=new Set(j.known);if(typeof j.cat==="string")cat=j.cat;if(typeof j.learnFilter==="string")learnFilter=j.learnFilter;}catch(e){}}
-function exportProgress(){const data={v:1,app:APP_VERSION,known:[...known],cat,learnFilter,exported:new Date().toISOString()};const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="stat253-flashcards-progress.json";a.click();URL.revokeObjectURL(a.href);}
-function importProgress(ev){const file=ev.target.files&&ev.target.files[0];if(!file)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);if(Array.isArray(d.known))known=new Set(d.known);if(typeof d.cat==="string")cat=d.cat;if(typeof d.learnFilter==="string")learnFilter=d.learnFilter;perm=[];cur=0;flp=false;persistState();render();}catch(e){alert("Could not import that file. Use a JSON export from this app.");}ev.target.value="";};r.readAsText(file);}
 function shuffleDeck(){const f=getF();if(f.length<2)return;perm=[...Array(f.length).keys()];for(let i=f.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[perm[i],perm[j]]=[perm[j],perm[i]];}cur=0;flp=false;render();}
 function randomCard(){const f=getF();if(!f.length)return;cur=Math.floor(Math.random()*f.length);flp=false;render();}
 function setLearnFilter(lf){learnFilter=lf;cur=0;flp=false;perm=[];render();persistState();}
@@ -652,9 +650,6 @@ ${showSearchDrop&&srch.trim().length>0?'<ul id="search-suggestions" role="listbo
 <div class="mb-4 flex w-full flex-wrap items-center justify-center gap-2">
 <button type="button" class="touch-manipulation rounded-xl border border-slate-600 bg-slate-800/90 px-3 py-2.5 min-h-[44px] text-xs font-semibold text-slate-200 shadow transition hover:bg-slate-700 active:scale-[0.98] sm:text-sm" onclick="shuffleDeck()" title="Randomize order of cards in the current filter">Shuffle deck</button>
 <button type="button" class="touch-manipulation rounded-xl border border-slate-600 bg-slate-800/90 px-3 py-2.5 min-h-[44px] text-xs font-semibold text-slate-200 shadow transition hover:bg-slate-700 active:scale-[0.98] sm:text-sm" onclick="randomCard()" title="Jump to a random card">Random card</button>
-<button type="button" class="touch-manipulation rounded-xl border border-slate-600 bg-slate-800/90 px-3 py-2.5 min-h-[44px] text-xs font-semibold text-slate-200 shadow transition hover:bg-slate-700 active:scale-[0.98] sm:text-sm" onclick="exportProgress()">Export progress</button>
-<button type="button" class="touch-manipulation rounded-xl border border-slate-600 bg-slate-800/90 px-3 py-2.5 min-h-[44px] text-xs font-semibold text-slate-200 shadow transition hover:bg-slate-700 active:scale-[0.98] sm:text-sm" onclick="document.getElementById('import-file').click()">Import</button>
-<input id="import-file" type="file" accept="application/json,.json" class="sr-only" aria-label="Import progress JSON file" onchange="importProgress(event)"/>
 </div>
 <div class="mb-3 flex w-full items-center gap-3 sm:mb-4">
 <div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-700/80 shadow-inner">
@@ -666,7 +661,7 @@ ${showSearchDrop&&srch.trim().length>0?'<ul id="search-suggestions" role="listbo
 ${ch}
 <footer class="mt-8 border-t border-slate-800/80 pt-6 text-center text-[11px] text-slate-500 sm:text-xs">
 <p>v${APP_VERSION} \u00b7 ${BUILD_DATE}</p>
-<p class="mt-1.5 max-w-md mx-auto leading-relaxed">Progress is saved in this browser. Use <strong class="font-medium text-slate-400">Export</strong> to back up or move to another device.</p>
+<p class="mt-1.5 max-w-md mx-auto leading-relaxed">Progress is saved in this browser only.</p>
 </footer>`;
 if(wasSearch){
 const inp=document.getElementById("card-search-input");
