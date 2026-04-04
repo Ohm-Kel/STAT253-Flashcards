@@ -551,6 +551,10 @@ function getF(){let f=CARDS;if(cat!=="All")f=f.filter(c=>c.cat===cat);if(srch){c
 function escAttr(s){return String(s).replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;");}
 
 function render(){
+const prev=document.activeElement;
+const wasSearch=prev&&prev.id==="card-search-input";
+let selStart=0,selEnd=0;
+if(wasSearch&&typeof prev.selectionStart==="number"){selStart=prev.selectionStart;selEnd=prev.selectionEnd;}
 const a=document.getElementById('app'),f=getF(),c=f[cur];
 let dots=f.map((x,i)=>{const g=CARDS.indexOf(x),ac=i===cur,kn=known.has(g);const bg=kn?'#4ade80':ac?(c?.color||'#3b82f6'):'#475569';const wide=ac?'min-w-[1.35rem] w-7':'';return`<button type="button" aria-label="Go to card ${i+1}" class="h-2 shrink-0 rounded-full transition-all duration-300 ease-out ${wide} ${ac?'rounded-md scale-100':'hover:opacity-90'} ${kn?'ring-2 ring-emerald-400/40 ring-offset-2 ring-offset-slate-950':""}" style="background:${bg}" onclick="goTo(${i})"></button>`;}).join('');
 let filt=cats.map(ct=>{const on=cat===ct;return`<button type="button" class="shrink-0 touch-manipulation rounded-full border px-3.5 py-2.5 min-h-[44px] text-xs sm:text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${on?'shadow-md shadow-black/30':''}" style="--cat-color:${cc[ct]};${on?`border-color:var(--cat-color);background:color-mix(in srgb,var(--cat-color) 22%,transparent);color:var(--cat-color)`:'border-slate-600/90 bg-slate-800/90 text-slate-400 hover:border-slate-500 hover:bg-slate-800'}" onclick="setCat('${ct}')">${ct}${ct!=='All'?' ('+CARDS.filter(x=>x.cat===ct).length+')':''}</button>`;}).join('');
@@ -595,14 +599,21 @@ ${mv}
 <button type="button" class="flex h-12 w-12 shrink-0 touch-manipulation items-center justify-center rounded-2xl border text-lg text-slate-100 shadow-lg transition hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40" onclick="event.stopPropagation();goNext()" ${cur>=f.length-1?'disabled':''} style="border-color:${c.color};background:${c.color}35" aria-label="Next card">&#8594;</button>
 </div>
 <p class="mt-3 text-center font-mono text-xs text-slate-500 sm:mt-4">${cur+1} / ${f.length}</p></div>`;}
+let searchDropdownHtml="";
+if(srch.trim().length>0){
+const m=getF();
+if(!m.length){searchDropdownHtml='<li class="px-4 py-3.5 text-sm text-slate-400" role="option">No matching cards in this filter.</li>';}
+else{searchDropdownHtml=m.map((card,idx)=>`<li role="presentation"><button type="button" role="option" class="flex w-full touch-manipulation items-start gap-3 px-3 py-3 text-left transition-colors sm:px-4 ${idx===cur?"bg-slate-700/50":"hover:bg-slate-700/40 active:bg-slate-600/50"}" onmousedown="event.preventDefault();selectSearchHit(${idx})" aria-selected="${idx===cur}"><span class="mt-0.5 shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/95" style="background:${card.color}cc">${escAttr(card.cat)}</span><span class="min-w-0 flex-1"><span class="block text-sm font-semibold leading-snug text-slate-50">${escAttr(card.title)}</span><span class="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-400">${escAttr(card.front)}</span></span></button></li>`).join("");}
+}
 a.innerHTML=`
 <header class="mb-5 w-full text-center sm:mb-6">
 <h1 class="font-serif text-2xl font-normal tracking-tight text-slate-50 sm:text-3xl">\ud83d\udcca STAT 253 \u2013 Distributions</h1>
 <p class="mt-1.5 text-sm italic text-slate-400 sm:text-base">Lectures 5\u201310 \u00b7 Tap to flip \u00b7 ${CARDS.length} cards</p>
 </header>
-<div class="relative mb-4 w-full">
-<span class="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-500" aria-hidden="true">\ud83d\udd0d</span>
-<input class="w-full rounded-2xl border border-slate-600/80 bg-slate-950/80 py-3.5 pl-11 pr-4 text-base text-slate-100 shadow-inner outline-none ring-0 transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30" type="search" inputmode="search" autocomplete="off" placeholder="Search cards\u2026" value="${escAttr(srch)}" oninput="onSrch(this.value)" aria-label="Search flashcards">
+<div class="group relative z-20 mb-4 w-full">
+<span class="pointer-events-none absolute left-3.5 top-[1.125rem] z-10 text-slate-500" aria-hidden="true">\ud83d\udd0d</span>
+<input id="card-search-input" class="peer w-full rounded-2xl border border-slate-600/80 bg-slate-950/80 py-3.5 pl-11 pr-4 text-base text-slate-100 shadow-inner outline-none ring-0 transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="Search cards\u2026" value="${escAttr(srch)}" oninput="onSrch(this.value)" aria-label="Search flashcards" aria-autocomplete="list" aria-controls="${srch.trim().length>0?"search-suggestions":""}" aria-expanded="${srch.trim().length>0?"true":"false"}" role="combobox">
+${srch.trim().length>0?'<ul id="search-suggestions" role="listbox" class="absolute left-0 right-0 top-[calc(100%+0.375rem)] z-30 max-h-[min(50vh,18rem)] overflow-y-auto overflow-x-hidden rounded-2xl border border-slate-600/90 bg-slate-900/98 py-1.5 shadow-2xl shadow-black/40 ring-1 ring-white/5 backdrop-blur-md">'+searchDropdownHtml+"</ul>":""}
 </div>
 <div class="mb-4 flex w-full flex-wrap justify-center gap-2 sm:gap-2.5">${filt}</div>
 <div class="mb-3 flex w-full items-center gap-3 sm:mb-4">
@@ -612,7 +623,29 @@ a.innerHTML=`
 <span class="min-w-[3.25rem] text-right font-mono text-xs font-semibold text-emerald-400 sm:text-sm">${lc}/${f.length}</span>
 </div>
 <div class="dots-scroll mb-4 flex max-w-full gap-1.5 overflow-x-auto overflow-y-hidden pb-1 [-ms-overflow-style:none] [scrollbar-width:thin] sm:mb-5 sm:flex-wrap sm:justify-center sm:overflow-x-visible">${dots}</div>
-${ch}`;}
+${ch}`;
+if(wasSearch){
+const inp=document.getElementById("card-search-input");
+if(inp){
+inp.focus();
+const L=inp.value.length;
+try{inp.setSelectionRange(Math.min(selStart,L),Math.min(selEnd,L));}catch(e){}
+}
+}
+}
+
+function selectSearchHit(filteredIdx){
+const list=getF();
+const card=list[filteredIdx];
+if(!card)return;
+srch=card.title;
+flp=false;
+const next=getF();
+cur=next.findIndex(c=>c===card);
+if(cur<0)cur=0;
+render();
+requestAnimationFrame(()=>{const el=document.getElementById("card-search-input");if(el)el.blur();});
+}
 
 function doFlip(){flp=!flp;render()}
 function goNext(){if(cur<getF().length-1){cur++;flp=false;render()}}
