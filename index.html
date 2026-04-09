@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<meta name="theme-color" content="#020617">
+<meta name="theme-color" content="#0b1020">
 <meta name="description" content="STAT 253 probability & distributions flashcards — Lectures 5–10. Study, track progress, search.">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -39,17 +39,28 @@ tailwind.config = {
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <style>
+  html { scroll-behavior: smooth; }
   html, body { height: 100%; }
-  .card-perspective { perspective: 1200px; }
+  .focus-ring:focus-visible {
+    outline: 2px solid #5b8cff;
+    outline-offset: 2px;
+  }
+  .card-perspective {
+    perspective: 1200px;
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .card-perspective:hover:not(:focus-within) { transform: translateY(-2px); }
+  }
   .card-inner {
     position: relative;
     width: 100%;
-    min-height: min(68vh, 27rem);
+    min-height: min(62vh, 26rem);
     transform-style: preserve-3d;
-    transition: transform 0.55s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: transform 0.58s cubic-bezier(0.2, 0.8, 0.2, 1);
   }
   @media (min-width: 640px) {
-    .card-inner { min-height: 28rem; }
+    .card-inner { min-height: 27rem; }
   }
   .card-inner.flipped { transform: rotateY(180deg); }
   .card-face {
@@ -61,8 +72,8 @@ tailwind.config = {
     -webkit-backface-visibility: hidden;
   }
   .card-back { transform: rotateY(180deg); }
-  .card-back-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
-  .katex-card-symbol .katex { font-size: clamp(1.05rem, 4.2vw, 1.65rem) !important; }
+  .card-back-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; max-height: min(70vh, 32rem); }
+  .katex-card-symbol .katex { font-size: clamp(1.05rem, 4vw, 1.55rem) !important; }
   .katex-formula .katex { font-size: clamp(0.78rem, 2.6vw, 1.05em) !important; }
   .katex-inline .katex { font-size: 0.95em !important; }
   .dots-scroll::-webkit-scrollbar { height: 4px; }
@@ -71,15 +82,24 @@ tailwind.config = {
     position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
     overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
   }
+  .skip-link:focus {
+    position: fixed; left: 1rem; top: 5rem; z-index: 100;
+    width: auto; height: auto; padding: 0.5rem 1rem; margin: 0;
+    overflow: visible; clip: auto; white-space: normal;
+    border-radius: 0.5rem; background: #1a2438; color: #e8edf5;
+    box-shadow: 0 0 0 2px #5b8cff;
+  }
   .search-mark { background: rgba(251, 191, 36, 0.35); color: rgb(254 243 199); }
   @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
     .card-inner { transition: none !important; }
+    .card-perspective { transition: none !important; transform: none !important; }
     .animate-fade-in, .animate-slide-up { animation: none !important; opacity: 1 !important; transform: none !important; }
   }
 </style>
 </head>
-<body class="min-h-[100dvh] overflow-x-hidden bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950 font-sans text-slate-100 antialiased selection:bg-blue-500/30 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)]">
-<div id="app" class="mx-auto w-full max-w-lg px-4 sm:px-5 py-4 sm:py-6"></div>
+<body class="min-h-[100dvh] overflow-x-hidden bg-gradient-to-b from-[#0b1020] via-[#121a2e] to-[#0b1020] font-sans text-[#e8edf5] antialiased selection:bg-blue-500/30 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)]">
+<div id="app" class="mx-auto w-full max-w-xl px-4 sm:px-6 lg:px-8 py-3 sm:py-5"></div>
 <script>
 function tex(l){try{return katex.renderToString(l,{throwOnError:false,displayMode:false})}catch(e){return l}}
 function texD(l){try{return katex.renderToString(l,{throwOnError:false,displayMode:true})}catch(e){return l}}
@@ -558,8 +578,8 @@ color:"#134e4a",accent:"#5eead4"},
 ];
 
 // ---- State ----
-const APP_VERSION="1.3.0",BUILD_DATE="2026-04-03",LS_KEY="stat253-fc-v1";
-let cur=0,flp=false,known=new Set(),cat="All",srch="",showSearchDrop=false,learnFilter="all",perm=[],searchSel=0;
+const APP_VERSION="1.4.0",BUILD_DATE="2026-04-03",LS_KEY="stat253-fc-v1";
+let cur=0,flp=false,known=new Set(),cat="All",srch="",showSearchDrop=false,learnFilter="all",perm=[],searchSel=0,filtersOpen=true;
 const cats=["All","Discrete","Continuous","Joint","Functions"];
 const cc={All:"#3b82f6",Discrete:"#9333ea",Continuous:"#059669",Joint:"#ec4899",Functions:"#06b6d4"};
 
@@ -571,6 +591,10 @@ function loadState(){try{let raw=localStorage.getItem(LS_KEY);if(!raw)raw=localS
 function shuffleDeck(){const f=getF();if(f.length<2)return;perm=[...Array(f.length).keys()];for(let i=f.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[perm[i],perm[j]]=[perm[j],perm[i]];}cur=0;flp=false;render();}
 function randomCard(){const f=getF();if(!f.length)return;cur=Math.floor(Math.random()*f.length);flp=false;render();}
 function setLearnFilter(lf){learnFilter=lf;cur=0;flp=false;perm=[];render();persistState();}
+function loadUiState(){try{if(localStorage.getItem("stat253-ui-filters")==="0")filtersOpen=false;}catch(e){}}
+function persistUiFilters(){try{localStorage.setItem("stat253-ui-filters",filtersOpen?"1":"0");}catch(e){}}
+function toggleFilters(){filtersOpen=!filtersOpen;persistUiFilters();render();}
+function scrollToStudy(){const t=document.getElementById("study");if(t)t.scrollIntoView({behavior:"smooth",block:"start"});requestAnimationFrame(()=>{const a=document.getElementById("flashcard-anchor"),i=document.getElementById("card-search-input");if(a)try{a.focus({preventScroll:true});}catch(e){a.focus();}else if(i)i.focus();});}
 
 function render(){
 const prev=document.activeElement;
@@ -581,88 +605,131 @@ const a=document.getElementById('app'),f=getF();
 if(perm.length!==f.length){perm=[...Array(f.length).keys()];}
 if(f.length)cur=Math.min(Math.max(0,cur),f.length-1);else cur=0;
 const c=f.length?f[perm[cur]]:undefined;
-let dots=f.map((_,i)=>{const x=f[perm[i]],g=CARDS.indexOf(x),ac=i===cur,kn=known.has(g);const bg=kn?'#4ade80':ac?(c?.color||'#3b82f6'):'#475569';const wide=ac?'min-w-[1.35rem] w-7':'';return`<button type="button" aria-label="Go to card ${i+1}" class="h-2 shrink-0 rounded-full transition-all duration-300 ease-out ${wide} ${ac?'rounded-md scale-100':'hover:opacity-90'} ${kn?'ring-2 ring-emerald-400/40 ring-offset-2 ring-offset-slate-950':""}" style="background:${bg}" onclick="goTo(${i})"></button>`;}).join('');
-let filt=cats.map(ct=>{const on=cat===ct;return`<button type="button" class="shrink-0 touch-manipulation rounded-full border px-3.5 py-2.5 min-h-[44px] text-xs sm:text-sm font-semibold transition-all duration-200 active:scale-[0.98] ${on?'shadow-md shadow-black/30':''}" style="--cat-color:${cc[ct]};${on?`border-color:var(--cat-color);background:color-mix(in srgb,var(--cat-color) 22%,transparent);color:var(--cat-color)`:'border-slate-600/90 bg-slate-800/90 text-slate-400 hover:border-slate-500 hover:bg-slate-800'}" onclick="setCat('${ct}')">${ct}${ct!=='All'?' ('+CARDS.filter(x=>x.cat===ct).length+')':''}</button>`;}).join('');
+let dots=f.map((_,i)=>{const x=f[perm[i]],g=CARDS.indexOf(x),ac=i===cur,kn=known.has(g);const bg=kn?'#34d399':ac?(c?.color||'#5b8cff'):'#475569';const wide=ac?'min-w-[1.35rem] w-7':'';return`<button type="button" aria-label="Go to card ${i+1}" class="h-2.5 shrink-0 rounded-full transition-all duration-300 ease-out focus-ring ${wide} ${ac?'rounded-md scale-100':'hover:opacity-90'} ${kn?'ring-2 ring-emerald-400/50 ring-offset-2 ring-offset-[#0b1020]':""}" style="background:${bg}" onclick="goTo(${i})"></button>`;}).join('');
+let filt=cats.map(ct=>{const on=cat===ct;return`<button type="button" class="shrink-0 touch-manipulation rounded-full border px-3.5 py-2.5 min-h-[44px] text-xs sm:text-sm font-semibold transition-all duration-200 active:scale-[0.97] focus-ring ${on?'shadow-lg shadow-black/25 ring-1 ring-white/10':''}" style="--cat-color:${cc[ct]};${on?`border-color:var(--cat-color);background:color-mix(in srgb,var(--cat-color) 18%,#1a2438);color:#e8edf5`:'border-[#2a3548] bg-[#1a2438]/90 text-[#9aa8bc] hover:border-slate-500 hover:bg-[#1e2d45]'}" onclick="setCat('${ct}')">${ct}${ct!=='All'?' ('+CARDS.filter(x=>x.cat===ct).length+')':''}</button>`;}).join('');
 const lfRows=[{id:"all",lab:"All cards"},{id:"learned",lab:"\u2713 Learned"},{id:"unlearned",lab:"To learn"}];
-let learnFilt=lfRows.map(r=>{const on=learnFilter===r.id;return`<button type="button" class="shrink-0 touch-manipulation rounded-full border px-3 py-2 min-h-[40px] text-[11px] sm:text-xs font-semibold transition-all duration-200 active:scale-[0.98] ${on?'border-emerald-500/70 bg-emerald-500/15 text-emerald-200 shadow-md shadow-black/20':'border-slate-600/90 bg-slate-800/90 text-slate-400 hover:border-slate-500'}" onclick="setLearnFilter('${r.id}')">${r.lab}</button>`;}).join('');
+let learnFilt=lfRows.map(r=>{const on=learnFilter===r.id;return`<button type="button" class="shrink-0 touch-manipulation rounded-full border px-3 py-2 min-h-[40px] text-[11px] sm:text-xs font-semibold transition-all duration-200 active:scale-[0.97] focus-ring ${on?'border-emerald-500/60 bg-emerald-500/12 text-emerald-100 shadow-md shadow-black/20':'border-[#2a3548] bg-[#1a2438]/90 text-[#9aa8bc] hover:border-slate-500'}" onclick="setLearnFilter('${r.id}')">${r.lab}</button>`;}).join('');
 const lc=f.filter(x=>known.has(CARDS.indexOf(x))).length,pr=f.length?(lc/f.length*100):0;
 const liveStatus=!f.length?"No cards match the current filters.":`Showing card ${cur+1} of ${f.length}. ${lc} learned in this deck.`;
 let ch='';
-if(!c){ch=`<div class="animate-fade-in rounded-2xl border border-slate-700/60 bg-slate-900/50 px-6 py-14 text-center text-slate-400"><p class="font-serif text-lg text-slate-200">No cards found</p><p class="mt-2 text-sm leading-relaxed">Try another search or category.</p></div>`;}
+if(!c){ch=`<div class="animate-fade-in rounded-2xl border border-[#2a3548] bg-[#141c2f]/90 px-6 py-14 text-center shadow-[0_12px_40px_rgba(0,0,0,0.35)]"><p class="font-serif text-xl text-[#e8edf5]">No cards found</p><p class="mt-3 text-sm leading-relaxed text-[#9aa8bc]">Try another search, topic, or learn filter.</p></div>`;}
 else{
 const gi=CARDS.indexOf(c),ik=known.has(gi);
 let fml=c.formulas.map(x=>`<div class="katex-formula py-1.5 text-center">${texD(x)}</div>`).join('');
 let mv='';
 if(c.m||c.v||c.s){let r='';
-if(c.m)r+=`<div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 py-1"><span class="min-w-[4.5rem] shrink-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">Mean</span><span class="katex-inline text-slate-100">${tex(c.m)}</span></div>`;
-if(c.v)r+=`<div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 py-1"><span class="min-w-[4.5rem] shrink-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">Variance</span><span class="katex-inline text-slate-100">${tex(c.v)}</span></div>`;
-if(c.s)r+=`<div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 py-1"><span class="min-w-[4.5rem] shrink-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">Std Dev</span><span class="katex-inline text-slate-100">${tex(c.s)}</span></div>`;
-mv=`<div class="rounded-xl border px-3.5 py-3 sm:px-4" style="background:${c.color}14;border-color:${c.color}35"><p class="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Mean, variance &amp; SD</p><div style="color:${c.accent}">${r}</div></div>`;}
+if(c.m)r+=`<div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 py-1"><span class="min-w-[4.5rem] shrink-0 text-[10px] font-bold uppercase tracking-wider text-[#9aa8bc]">Mean</span><span class="katex-inline text-[#e8edf5]">${tex(c.m)}</span></div>`;
+if(c.v)r+=`<div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 py-1"><span class="min-w-[4.5rem] shrink-0 text-[10px] font-bold uppercase tracking-wider text-[#9aa8bc]">Variance</span><span class="katex-inline text-[#e8edf5]">${tex(c.v)}</span></div>`;
+if(c.s)r+=`<div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 py-1"><span class="min-w-[4.5rem] shrink-0 text-[10px] font-bold uppercase tracking-wider text-[#9aa8bc]">Std Dev</span><span class="katex-inline text-[#e8edf5]">${tex(c.s)}</span></div>`;
+mv=`<div class="rounded-xl border border-[#2a3548] bg-[#0f1626] px-3.5 py-3 sm:px-4" style="border-left:3px solid ${c.color}"><p class="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9aa8bc]">Mean, variance &amp; SD</p><div style="color:${c.accent}">${r}</div></div>`;}
 ch=`
 <div class="animate-slide-up w-full max-w-full">
-<div class="card-perspective w-full cursor-pointer touch-manipulation" onclick="doFlip()" role="button" tabindex="0" aria-label="Flip card">
+<div id="flashcard-anchor" tabindex="0" class="card-perspective mb-2 w-full cursor-pointer touch-manipulation rounded-2xl outline-none active:scale-[0.995] focus-visible:ring-2 focus-visible:ring-[#5b8cff] focus-visible:ring-offset-2 focus-visible:ring-offset-[#0b1020] sm:mb-0 sm:active:scale-100" onclick="doFlip()" role="button" aria-label="Flip card. Tap or use Flip button.">
 <div class="card-inner ${flp?'flipped':''}">
-<div class="card-face flex flex-col items-center justify-center rounded-3xl border p-5 sm:p-8 text-center shadow-2xl" style="background:linear-gradient(165deg,${c.color}26 0%,#0f172a 42%,${c.color}14 100%);border-color:${c.color}55;box-shadow:0 25px 50px -12px ${c.color}28">
-<p class="mb-3 text-[10px] font-bold uppercase tracking-[0.25em] sm:mb-4" style="color:${c.accent}">${c.title}</p>
-<div class="katex-card-symbol mb-4 sm:mb-5" style="color:${c.accent}">${tex(c.sym)}</div>
-<p class="font-serif text-[clamp(1.05rem,4vw,1.35rem)] leading-snug text-slate-100">${c.front}</p>
-<p class="mt-6 flex items-center justify-center gap-2 text-xs text-slate-500 sm:mt-8"><span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-800/80 text-base">&#8635;</span><span>Tap to reveal</span></p>
+<div class="card-face flex flex-col items-center rounded-2xl border border-[#2a3548] bg-[#161e2e] p-5 text-center shadow-[0_12px_40px_rgba(0,0,0,0.35)] sm:p-8" style="border-left-width:4px;border-left-color:${c.color}">
+<div class="mb-4 flex w-full items-start justify-between gap-3">
+<span class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[#9aa8bc]">Question</span>
+<span class="shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/95 shadow-sm" style="background:${c.color}cc">${escAttr(c.cat)}</span>
 </div>
-<div class="card-face card-back card-back-scroll flex flex-col gap-3 rounded-3xl border p-4 sm:p-6 text-left shadow-2xl sm:gap-4" style="background:linear-gradient(165deg,${c.color}30 0%,#0f172a 35%,#0f172a 65%,${c.color}18 100%);border-color:${c.color}55;box-shadow:0 25px 50px -12px ${c.color}28">
-<p class="text-[10px] font-bold uppercase tracking-[0.25em]" style="color:${c.accent}">${c.title} \u2014 Answer</p>
-<p class="text-sm leading-relaxed text-slate-300 sm:text-[15px]">${c.back}</p>
-<div class="rounded-xl border px-3 py-3 sm:px-4" style="background:${c.color}1a;border-color:${c.color}40">
-<p class="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">Key formula</p>
+<p class="mb-2 w-full text-center text-sm font-semibold leading-snug text-[#e8edf5] sm:text-base">${c.title}</p>
+<div class="katex-card-symbol mb-4 sm:mb-5" style="color:${c.accent}">${tex(c.sym)}</div>
+<p class="max-w-prose font-serif text-[clamp(1.125rem,3.8vw,1.35rem)] leading-snug text-[#e8edf5]">${c.front}</p>
+<p class="mt-6 flex items-center justify-center gap-2 text-xs text-[#9aa8bc] sm:mt-8"><span class="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#1a2438] text-base text-[#5b8cff]" aria-hidden="true">&#8635;</span><span>Tap card or <strong class="font-semibold text-[#cbd5e1]">Flip</strong> to reveal</span></p>
+</div>
+<div class="card-face card-back card-back-scroll flex flex-col gap-3 rounded-2xl border border-[#2a3548] bg-[#1a2438] p-4 text-left shadow-[0_12px_40px_rgba(0,0,0,0.35)] sm:gap-4 sm:p-6" style="border-left-width:4px;border-left-color:${c.color}">
+<div class="flex flex-wrap items-center gap-2">
+<span class="inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm" style="background:${c.color}dd">Answer</span>
+<span class="text-xs font-semibold text-[#9aa8bc]">${c.title}</span>
+</div>
+<p class="text-[15px] leading-relaxed text-[#e8edf5] sm:text-base">${c.back}</p>
+<div class="rounded-xl border border-[#2a3548] bg-[#141c2f] px-3 py-3 sm:px-4" style="border-left:3px solid ${c.color}">
+<p class="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9aa8bc]">Key formula</p>
 <div style="color:${c.accent}">${fml}</div>
 </div>
 ${mv}
-<div class="rounded-xl border border-white/10 bg-white/[0.04] px-3 py-3 sm:px-4">
-<p class="mb-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Course example</p>
-<p class="text-xs italic leading-relaxed text-slate-400 sm:text-sm">${c.ex}</p>
+<div class="rounded-xl border border-[#2a3548] border-l-[3px] bg-[#141c2f]/80 px-3 py-3 sm:px-4" style="border-left-color:${c.color}">
+<p class="mb-1.5 text-[10px] font-bold uppercase tracking-[0.2em] text-[#9aa8bc]">Course example</p>
+<p class="text-xs italic leading-relaxed text-[#9aa8bc] sm:text-sm">${c.ex}</p>
 </div>
 </div></div></div>
-<div class="mt-5 flex w-full max-w-full items-stretch justify-center gap-3 sm:mt-6 sm:gap-4">
-<button type="button" class="flex h-12 w-12 shrink-0 touch-manipulation items-center justify-center rounded-2xl border border-slate-600 bg-slate-800/90 text-lg text-slate-100 shadow-lg transition hover:bg-slate-700 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40" onclick="event.stopPropagation();goPrev()" ${cur===0?'disabled':''} aria-label="Previous card">&#8592;</button>
-<button type="button" class="min-h-[48px] flex-1 touch-manipulation rounded-2xl border px-4 py-3 text-sm font-semibold shadow-lg transition active:scale-[0.98] sm:px-6 sm:text-base ${ik?'border-emerald-400/60 bg-emerald-500/15 text-emerald-300':'border-slate-600 bg-slate-800/90 text-slate-300 hover:border-slate-500'}" onclick="event.stopPropagation();togKnown()">${ik?'\u2713 Learned':'Mark as learned'}</button>
-<button type="button" class="flex h-12 w-12 shrink-0 touch-manipulation items-center justify-center rounded-2xl border text-lg text-slate-100 shadow-lg transition hover:brightness-110 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40" onclick="event.stopPropagation();goNext()" ${cur>=f.length-1?'disabled':''} style="border-color:${c.color};background:${c.color}35" aria-label="Next card">&#8594;</button>
+<div class="mt-6 flex w-full flex-col gap-3 sm:mt-8">
+<div class="flex w-full gap-2 sm:gap-3">
+<button type="button" class="flex min-h-[48px] min-w-[5.5rem] shrink-0 touch-manipulation items-center justify-center gap-1 rounded-xl border border-[#2a3548] bg-[#1a2438] px-3 text-sm font-semibold text-[#e8edf5] shadow-md transition hover:bg-[#243049] active:scale-[0.98] focus-ring disabled:cursor-not-allowed disabled:opacity-40 sm:min-w-[6.5rem]" onclick="event.stopPropagation();goPrev()" ${cur===0?'disabled':''} aria-label="Previous card"><span aria-hidden="true">&#8592;</span><span class="hidden sm:inline">Prev</span></button>
+<button type="button" class="min-h-[48px] flex-1 touch-manipulation rounded-xl bg-[#3d62d0] px-4 text-sm font-semibold text-white shadow-lg shadow-blue-900/30 transition hover:bg-[#4d72e0] active:scale-[0.98] focus-ring sm:text-base" onclick="event.stopPropagation();doFlip()" aria-label="Flip card">Flip</button>
+<button type="button" class="flex min-h-[48px] min-w-[5.5rem] shrink-0 touch-manipulation items-center justify-center gap-1 rounded-xl border border-[#2a3548] px-3 text-sm font-semibold text-[#e8edf5] shadow-md transition active:scale-[0.98] focus-ring disabled:cursor-not-allowed disabled:opacity-40 sm:min-w-[6.5rem]" onclick="event.stopPropagation();goNext()" ${cur>=f.length-1?'disabled':''} style="background:color-mix(in srgb,${c.color} 28%, #1a2438);border-color:color-mix(in srgb,${c.color} 50%, #2a3548)" aria-label="Next card"><span class="hidden sm:inline">Next</span><span aria-hidden="true">&#8594;</span></button>
 </div>
-<p class="mt-3 text-center font-mono text-xs text-slate-500 sm:mt-4">${cur+1} / ${f.length}</p></div>`;}
+<button type="button" class="min-h-[48px] w-full touch-manipulation rounded-xl border px-4 py-3 text-sm font-semibold transition active:scale-[0.98] focus-ring sm:text-base ${ik?'border-emerald-500/50 bg-emerald-500/10 text-emerald-200':'border-[#2a3548] bg-[#1a2438] text-[#cbd5e1] hover:border-slate-500'}" onclick="event.stopPropagation();togKnown()">${ik?'\u2713 Marked as learned':'Mark as learned'}</button>
+<p class="text-center text-[11px] leading-relaxed text-[#9aa8bc] sm:text-xs">Tap card or <strong class="font-medium text-[#cbd5e1]">Flip</strong> \u00b7 <strong class="font-medium text-[#cbd5e1]">\u2190 \u2192</strong> or swipe \u00b7 <strong class="font-medium text-[#cbd5e1]">Space</strong> flips</p>
+<p class="text-center font-mono text-xs text-[#64748b]">${cur+1} / ${f.length}</p>
+</div>
+</div>`;}
 let searchDropdownHtml="";
 if(showSearchDrop&&srch.trim().length>0){
 const m=getF();
 if(m.length)searchSel=Math.min(Math.max(0,searchSel),m.length-1);else searchSel=0;
-if(!m.length){searchDropdownHtml='<li class="px-4 py-3.5 text-sm text-slate-400" role="option">No matching cards in this filter.</li>';}
-else{searchDropdownHtml=m.map((card,idx)=>`<li role="presentation"><button type="button" role="option" id="search-opt-${idx}" class="flex w-full touch-manipulation items-start gap-3 px-3 py-3 text-left transition-colors sm:px-4 ${idx===searchSel?"bg-slate-700/60 ring-1 ring-inset ring-blue-500/35":"hover:bg-slate-700/40 active:bg-slate-600/50"}" onmousedown="event.preventDefault();selectSearchHit(${idx})" aria-selected="${idx===searchSel}"><span class="mt-0.5 shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/95" style="background:${card.color}cc">${escAttr(card.cat)}</span><span class="min-w-0 flex-1"><span class="block text-sm font-semibold leading-snug text-slate-50">${highlightMatch(card.title,srch)}</span><span class="mt-1 line-clamp-2 text-xs leading-relaxed text-slate-400">${highlightMatch(card.front,srch)}</span></span></button></li>`).join("");}
+if(!m.length){searchDropdownHtml='<li class="px-4 py-3.5 text-sm text-[#9aa8bc]" role="option">No matching cards in this filter.</li>';}
+else{searchDropdownHtml=m.map((card,idx)=>`<li role="presentation"><button type="button" role="option" id="search-opt-${idx}" class="flex w-full touch-manipulation items-start gap-3 px-3 py-3 text-left transition-colors sm:px-4 focus-ring ${idx===searchSel?"bg-[#243049] ring-1 ring-inset ring-[#5b8cff]/40":"hover:bg-[#1e2a40] active:bg-[#243049]"}" onmousedown="event.preventDefault();selectSearchHit(${idx})" aria-selected="${idx===searchSel}"><span class="mt-0.5 shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/95" style="background:${card.color}cc">${escAttr(card.cat)}</span><span class="min-w-0 flex-1"><span class="block text-sm font-semibold leading-snug text-[#e8edf5]">${highlightMatch(card.title,srch)}</span><span class="mt-1 line-clamp-2 text-xs leading-relaxed text-[#9aa8bc]">${highlightMatch(card.front,srch)}</span></span></button></li>`).join("");}
 }
+const uiWide=typeof window!=="undefined"&&window.matchMedia&&window.matchMedia("(min-width:768px)").matches;
+const filtersVisible=uiWide||filtersOpen;
 a.innerHTML=`
-<header class="mb-5 w-full text-center sm:mb-6">
-<h1 class="font-serif text-2xl font-normal tracking-tight text-slate-50 sm:text-3xl">\ud83d\udcca STAT 253 \u2013 Distributions</h1>
-<p class="mt-1.5 text-sm italic text-slate-400 sm:text-base">Lectures 5\u201310 \u00b7 Tap to flip \u00b7 ${CARDS.length} cards</p>
-</header>
-<div id="fc-live" class="sr-only" aria-live="polite" aria-atomic="true">${escAttr(liveStatus)}</div>
-<div class="group relative z-20 mb-3 w-full">
-<span class="pointer-events-none absolute left-3.5 top-[1.125rem] z-10 text-slate-500" aria-hidden="true">\ud83d\udd0d</span>
-<input id="card-search-input" class="peer w-full rounded-2xl border border-slate-600/80 bg-slate-950/80 py-3.5 pl-11 pr-4 text-base text-slate-100 shadow-inner outline-none ring-0 transition placeholder:text-slate-500 focus:border-blue-500 focus:ring-2 focus:ring-blue-500/30" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="Search cards\u2026" value="${escAttr(srch)}" oninput="onSrch(this.value)" onkeydown="onSearchKey(event)" onfocus="onSearchFocus()" onblur="onSearchBlur()" aria-label="Search flashcards" aria-autocomplete="list" aria-controls="${showSearchDrop&&srch.trim().length>0?"search-suggestions":""}" aria-expanded="${showSearchDrop&&srch.trim().length>0?"true":"false"}" role="combobox">
-${showSearchDrop&&srch.trim().length>0?'<ul id="search-suggestions" role="listbox" class="absolute left-0 right-0 top-[calc(100%+0.375rem)] z-30 max-h-[min(50vh,18rem)] overflow-y-auto overflow-x-hidden rounded-2xl border border-slate-600/90 bg-slate-900/98 py-1.5 shadow-2xl shadow-black/40 ring-1 ring-white/5 backdrop-blur-md">'+searchDropdownHtml+"</ul>":""}
+<a href="#study" class="skip-link sr-only text-sm font-medium">Skip to study</a>
+<nav class="sticky top-0 z-40 -mx-4 mb-6 border-b border-[#2a3548]/80 bg-[#0b1020]/88 px-4 py-3 backdrop-blur-md sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8" aria-label="Main">
+<div class="mx-auto flex max-w-xl items-center justify-between gap-4 lg:max-w-xl">
+<span class="font-serif text-base font-normal tracking-tight text-[#e8edf5] sm:text-lg">\ud83d\udcca <span class="hidden sm:inline">STAT 253</span></span>
+<div class="flex items-center gap-1 sm:gap-3">
+<a href="#top" class="focus-ring rounded-lg px-2.5 py-2 text-xs font-semibold text-[#9aa8bc] transition hover:text-[#e8edf5] sm:px-3 sm:text-sm">Home</a>
+<a href="#study" class="focus-ring rounded-lg px-2.5 py-2 text-xs font-semibold text-[#9aa8bc] transition hover:text-[#e8edf5] sm:px-3 sm:text-sm">Topics</a>
+<a href="#about" class="focus-ring rounded-lg px-2.5 py-2 text-xs font-semibold text-[#9aa8bc] transition hover:text-[#e8edf5] sm:px-3 sm:text-sm">About</a>
 </div>
+</div>
+</nav>
+<section id="top" class="mb-10 text-center sm:mb-12">
+<p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.2em] text-[#5b8cff]">Study deck</p>
+<h1 class="font-serif text-[clamp(1.75rem,5vw,2.35rem)] font-normal leading-tight tracking-tight text-[#e8edf5]">STAT 253 \u2013 Distributions</h1>
+<p class="mx-auto mt-3 max-w-md text-sm leading-relaxed text-[#9aa8bc] sm:text-base">Lectures 5\u201310 \u00b7 ${CARDS.length} flashcards \u00b7 Flip, filter by topic, and track what you\u2019ve learned.</p>
+<button type="button" onclick="scrollToStudy()" class="focus-ring mt-8 min-h-[48px] min-w-[12rem] touch-manipulation rounded-xl bg-[#3d62d0] px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-blue-950/40 transition hover:bg-[#4d72e0] active:scale-[0.98]">Start studying</button>
+</section>
+<div id="fc-live" class="sr-only" aria-live="polite" aria-atomic="true">${escAttr(liveStatus)}</div>
+<section id="study" class="scroll-mt-24" aria-labelledby="study-heading">
+<h2 id="study-heading" class="sr-only">Study</h2>
+${!uiWide?`<div class="mb-3 md:hidden"><button type="button" onclick="toggleFilters()" class="focus-ring flex w-full touch-manipulation items-center justify-center gap-2 rounded-xl border border-[#2a3548] bg-[#1a2438] py-3 text-sm font-semibold text-[#e8edf5] transition active:scale-[0.99]" aria-expanded="${filtersOpen}" aria-controls="study-filters-panel">${filtersOpen?"Hide":"Show"} search &amp; topics <span class="text-[#9aa8bc]" aria-hidden="true">${filtersOpen?"\u25b2":"\u25bc"}</span></button></div>`:""}
+<div id="study-filters-panel" class="${filtersVisible?"":"hidden md:block"}">
+<p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-[#9aa8bc]">Search</p>
+<div class="group relative z-20 mb-4 w-full">
+<span class="pointer-events-none absolute left-3.5 top-[1.125rem] z-10 text-[#64748b]" aria-hidden="true">\ud83d\udd0d</span>
+<input id="card-search-input" class="focus-ring peer w-full rounded-2xl border border-[#2a3548] bg-[#141c2f] py-3.5 pl-11 pr-4 text-base text-[#e8edf5] shadow-inner outline-none transition placeholder:text-[#64748b] focus:border-[#5b8cff] focus:ring-2 focus:ring-[#5b8cff]/35" type="search" inputmode="search" autocomplete="off" spellcheck="false" placeholder="Search cards\u2026" value="${escAttr(srch)}" oninput="onSrch(this.value)" onkeydown="onSearchKey(event)" onfocus="onSearchFocus()" onblur="onSearchBlur()" aria-label="Search flashcards" aria-autocomplete="list" aria-controls="${showSearchDrop&&srch.trim().length>0?"search-suggestions":""}" aria-expanded="${showSearchDrop&&srch.trim().length>0?"true":"false"}" role="combobox">
+${showSearchDrop&&srch.trim().length>0?'<ul id="search-suggestions" role="listbox" class="absolute left-0 right-0 top-[calc(100%+0.375rem)] z-30 max-h-[min(50vh,18rem)] overflow-y-auto overflow-x-hidden rounded-2xl border border-[#2a3548] bg-[#141c2f]/98 py-1.5 shadow-2xl shadow-black/50 ring-1 ring-white/5 backdrop-blur-md">'+searchDropdownHtml+"</ul>":""}
+</div>
+<p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-[#9aa8bc]">Topics</p>
 <div class="mb-3 flex w-full flex-wrap justify-center gap-2 sm:gap-2.5">${filt}</div>
+<p class="mb-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-[#9aa8bc]">Progress filter</p>
 <div class="mb-3 flex w-full flex-wrap justify-center gap-2">${learnFilt}</div>
 <div class="mb-4 flex w-full flex-wrap items-center justify-center gap-2">
-<button type="button" class="touch-manipulation rounded-xl border border-slate-600 bg-slate-800/90 px-3 py-2.5 min-h-[44px] text-xs font-semibold text-slate-200 shadow transition hover:bg-slate-700 active:scale-[0.98] sm:text-sm" onclick="shuffleDeck()" title="Randomize order of cards in the current filter">Shuffle deck</button>
-<button type="button" class="touch-manipulation rounded-xl border border-slate-600 bg-slate-800/90 px-3 py-2.5 min-h-[44px] text-xs font-semibold text-slate-200 shadow transition hover:bg-slate-700 active:scale-[0.98] sm:text-sm" onclick="randomCard()" title="Jump to a random card">Random card</button>
+<button type="button" class="focus-ring touch-manipulation rounded-xl border border-[#2a3548] bg-[#1a2438] px-3 py-2.5 min-h-[44px] text-xs font-semibold text-[#e8edf5] shadow transition hover:bg-[#243049] active:scale-[0.98] sm:text-sm" onclick="shuffleDeck()" title="Randomize order of cards in the current filter">Shuffle deck</button>
+<button type="button" class="focus-ring touch-manipulation rounded-xl border border-[#2a3548] bg-[#1a2438] px-3 py-2.5 min-h-[44px] text-xs font-semibold text-[#e8edf5] shadow transition hover:bg-[#243049] active:scale-[0.98] sm:text-sm" onclick="randomCard()" title="Jump to a random card">Random card</button>
+</div>
 </div>
 <div class="mb-3 flex w-full items-center gap-3 sm:mb-4">
-<div class="h-2 flex-1 overflow-hidden rounded-full bg-slate-700/80 shadow-inner">
-<div class="h-full rounded-full bg-gradient-to-r from-emerald-500 to-lime-400 transition-[width] duration-500 ease-out" style="width:${pr}%"></div>
+<div class="h-2 flex-1 overflow-hidden rounded-full bg-[#1a2438] shadow-inner">
+<div class="h-full rounded-full bg-gradient-to-r from-emerald-600 to-teal-500 transition-[width] duration-300 ease-out" style="width:${pr}%"></div>
 </div>
 <span class="min-w-[3.25rem] text-right font-mono text-xs font-semibold text-emerald-400 sm:text-sm">${lc}/${f.length}</span>
 </div>
-<div class="dots-scroll mb-4 flex max-w-full gap-1.5 overflow-x-auto overflow-y-hidden pb-1 [-ms-overflow-style:none] [scrollbar-width:thin] sm:mb-5 sm:flex-wrap sm:justify-center sm:overflow-x-visible">${dots}</div>
+<div class="dots-scroll mb-6 flex max-w-full gap-1.5 overflow-x-auto overflow-y-hidden pb-1 [-ms-overflow-style:none] [scrollbar-width:thin] sm:mb-8 sm:flex-wrap sm:justify-center sm:overflow-x-visible">${dots}</div>
 ${ch}
-<footer class="mt-8 border-t border-slate-800/80 pt-6 text-center text-[11px] text-slate-500 sm:text-xs">
+</section>
+<footer class="mt-10 border-t border-[#2a3548]/80 pt-8 text-center text-[11px] text-[#64748b] sm:mt-12 sm:text-xs">
 <p>v${APP_VERSION} \u00b7 ${BUILD_DATE}</p>
-<p class="mt-1.5 max-w-md mx-auto leading-relaxed">Progress is saved in this browser only.</p>
-</footer>`;
+<p class="mt-1.5 max-w-md mx-auto leading-relaxed text-[#9aa8bc]">Progress is saved in this browser only.</p>
+</footer>
+<section id="about" class="scroll-mt-24 mt-10 border-t border-[#2a3548]/80 pt-10 pb-8 sm:mt-12 sm:pt-12" aria-labelledby="about-heading">
+<h2 id="about-heading" class="mb-4 text-center font-serif text-xl text-[#e8edf5] sm:text-2xl">About this deck</h2>
+<div class="mx-auto max-w-lg space-y-3 text-sm leading-relaxed text-[#9aa8bc]">
+<p>These cards follow <strong class="font-medium text-[#cbd5e1]">STAT 253</strong> lectures 5\u201310 (discrete and continuous distributions, joint distributions, and related topics). Content is aligned with the course slides and Montgomery &amp; Runger notation where applicable.</p>
+<p>No account is required. Your \u201clearned\u201d marks and filters are stored locally in your browser.</p>
+</div>
+</section>`;
 if(wasSearch){
 const inp=document.getElementById("card-search-input");
 if(inp){
@@ -709,6 +776,7 @@ document.addEventListener('keydown',e=>{const t=e.target;if(t.tagName==='INPUT'|
 let ts=0;document.addEventListener('touchstart',e=>{ts=e.changedTouches[0].screenX});
 document.addEventListener('touchend',e=>{const d=e.changedTouches[0].screenX-ts;if(Math.abs(d)>60){d<0?goNext():goPrev()}});
 loadState();
+loadUiState();
 render();
 </script>
 </body>
