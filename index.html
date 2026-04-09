@@ -23,6 +23,7 @@ tailwind.config = {
   darkMode: "class",
   theme: {
     extend: {
+      screens: { xs: "400px" },
       fontFamily: {
         serif: ['"DM Serif Display"', 'Georgia', 'serif'],
         sans: ['"Source Sans 3"', 'system-ui', 'sans-serif'],
@@ -43,7 +44,12 @@ tailwind.config = {
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <style>
-  html { scroll-behavior: smooth; height: 100%; }
+  html {
+    scroll-behavior: smooth;
+    height: 100%;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
   html {
     --canvas-0: #f8fafc;
     --canvas-1: #e8edf4;
@@ -97,6 +103,10 @@ tailwind.config = {
   .card-perspective {
     perspective: 1200px;
     transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+    width: 100%;
+    max-width: 100%;
   }
   @media (hover: hover) and (pointer: fine) {
     .card-perspective:hover:not(:focus-within) { transform: translateY(-2px); }
@@ -114,11 +124,17 @@ tailwind.config = {
   .card-inner {
     position: relative;
     width: 100%;
-    min-height: min(62vh, 26rem);
+    min-height: min(48dvh, 17.5rem);
     transform-style: preserve-3d;
     transition: transform 0.68s cubic-bezier(0.33, 1, 0.68, 1);
   }
+  @media (min-width: 400px) {
+    .card-inner { min-height: min(52dvh, 22rem); }
+  }
   @media (min-width: 640px) {
+    .card-inner { min-height: min(60vh, 26rem); }
+  }
+  @media (min-width: 768px) {
     .card-inner { min-height: 27rem; }
   }
   .card-inner.flipped { transform: rotateY(180deg); }
@@ -127,13 +143,21 @@ tailwind.config = {
     inset: 0;
     width: 100%;
     min-height: 100%;
+    max-width: 100%;
+    overflow-wrap: anywhere;
+    word-wrap: break-word;
     backface-visibility: hidden;
     -webkit-backface-visibility: hidden;
   }
   .card-back { transform: rotateY(180deg); }
-  .card-back-scroll { overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; max-height: min(70vh, 32rem); }
-  .katex-card-symbol .katex { font-size: clamp(1.05rem, 4vw, 1.55rem) !important; }
-  .katex-formula .katex { font-size: clamp(0.78rem, 2.6vw, 1.05em) !important; }
+  .card-back-scroll { overflow-y: auto; overflow-x: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; max-height: min(55dvh, 26rem); }
+  @media (min-width: 640px) {
+    .card-back-scroll { max-height: min(70vh, 32rem); }
+  }
+  .katex-card-symbol { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .katex-formula { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .katex-card-symbol .katex { font-size: clamp(0.95rem, 3.5vw, 1.55rem) !important; }
+  .katex-formula .katex { font-size: clamp(0.72rem, 2.4vw, 1.05em) !important; }
   .katex-inline .katex { font-size: 0.95em !important; }
   .dots-scroll::-webkit-scrollbar { height: 4px; }
   .dots-scroll::-webkit-scrollbar-thumb { background: #475569; border-radius: 4px; }
@@ -153,7 +177,7 @@ tailwind.config = {
 </style>
 </head>
 <body class="overflow-x-hidden font-sans antialiased selection:bg-blue-500/30 pb-[max(1rem,env(safe-area-inset-bottom))] pt-[env(safe-area-inset-top)]">
-<div id="app" class="mx-auto w-full max-w-xl px-4 sm:px-6 lg:px-8 py-3 sm:py-5"></div>
+<div id="app" class="mx-auto w-full min-w-0 max-w-xl py-3 sm:py-5 ps-[max(0.75rem,env(safe-area-inset-left))] pe-[max(0.75rem,env(safe-area-inset-right))] sm:ps-6 sm:pe-6 lg:ps-8 lg:pe-8"></div>
 <script>
 function tex(l){try{return katex.renderToString(l,{throwOnError:false,displayMode:false})}catch(e){return l}}
 function texD(l){try{return katex.renderToString(l,{throwOnError:false,displayMode:true})}catch(e){return l}}
@@ -632,7 +656,7 @@ color:"#134e4a",accent:"#5eead4"},
 ];
 
 // ---- State ----
-const APP_VERSION="1.5.0",BUILD_DATE="2026-04-03",LS_KEY="stat253-fc-v1";
+const APP_VERSION="1.5.1",BUILD_DATE="2026-04-03",LS_KEY="stat253-fc-v1";
 let cur=0,flp=false,known=new Set(),cat="All",srch="",showSearchDrop=false,learnFilter="all",perm=[],searchSel=0,filtersOpen=true,animFromNav=false,navDir="next";
 const cats=["All","Discrete","Continuous","Joint","Functions"];
 const cc={All:"#3b82f6",Discrete:"#9333ea",Continuous:"#059669",Joint:"#ec4899",Functions:"#06b6d4"};
@@ -666,8 +690,9 @@ let dots=f.map((_,i)=>{const x=f[perm[i]],g=CARDS.indexOf(x),ac=i===cur,kn=known
 let filt=cats.map(ct=>{const on=cat===ct;return`<button type="button" class="shrink-0 touch-manipulation rounded-full border px-3.5 py-2.5 min-h-[44px] text-xs sm:text-sm font-semibold transition-all duration-200 active:scale-[0.97] focus-ring ${on?'shadow-md ring-1 ring-black/10 dark:shadow-black/25 dark:ring-white/10':''}" style="--cat-color:${cc[ct]};${on?`border-color:var(--cat-color);background:color-mix(in srgb,var(--cat-color) 18%,var(--surface-2));color:var(--text)`:'border-[var(--border)] bg-[var(--surface-2)]/90 text-[var(--text-muted)] hover:opacity-90'}" onclick="setCat('${ct}')">${ct}${ct!=='All'?' ('+CARDS.filter(x=>x.cat===ct).length+')':''}</button>`;}).join('');
 const lfRows=[{id:"all",lab:"All cards"},{id:"learned",lab:"\u2713 Learned"},{id:"unlearned",lab:"To learn"}];
 let learnFilt=lfRows.map(r=>{const on=learnFilter===r.id;return`<button type="button" class="shrink-0 touch-manipulation rounded-full border px-3 py-2 min-h-[40px] text-[11px] sm:text-xs font-semibold transition-all duration-200 active:scale-[0.97] focus-ring ${on?'border-emerald-500/50 bg-emerald-500/10 text-emerald-800 shadow-sm dark:border-emerald-500/60 dark:bg-emerald-500/12 dark:text-emerald-100 dark:shadow-md dark:shadow-black/20':'border-[var(--border)] bg-[var(--surface-2)]/90 text-[var(--text-muted)] hover:opacity-90'}" onclick="setLearnFilter('${r.id}')">${r.lab}</button>`;}).join('');
-const lc=f.filter(x=>known.has(CARDS.indexOf(x))).length,pr=f.length?(lc/f.length*100):0;
-const liveStatus=!f.length?"No cards match the current filters.":`Showing card ${cur+1} of ${f.length}. ${lc} learned in this deck.`;
+const lc=f.filter(x=>known.has(CARDS.indexOf(x))).length,pr=f.length?(lc/f.length*100):0,deckTotal=CARDS.length;
+const liveStatus=!f.length?"No cards match the current filters.":f.length===deckTotal?`Showing card ${cur+1} of ${deckTotal}. ${lc} marked learned.`:`Filtered view: card ${cur+1} of ${f.length} (${deckTotal} cards in the full deck). ${lc} learned in this view.`;
+const deckHint=f.length!==deckTotal?`<p role="status" class="mb-3 rounded-xl border border-amber-500/35 bg-amber-500/[0.12] px-3 py-2.5 text-center text-[11px] leading-snug text-[var(--text)] dark:border-amber-400/30 dark:bg-amber-500/10 sm:text-xs"><span class="font-semibold">${f.length}</span> of <span class="font-semibold">${deckTotal}</span> cards match your filters \u2014 not missing cards. Tap <strong class="font-semibold">All</strong> under Topics and clear search to see all <strong class="font-semibold">${deckTotal}</strong>.</p>`:"";
 let ch='';
 if(!c){ch=`<div class="animate-fade-in rounded-2xl border border-[var(--border)] bg-[var(--surface-3)] px-6 py-14 text-center shadow-card"><p class="font-serif text-xl text-[var(--text)]">No cards found</p><p class="mt-3 text-sm leading-relaxed text-[var(--text-muted)]">Try another search, topic, or learn filter.</p></div>`;}
 else{
@@ -680,25 +705,25 @@ if(c.v)r+=`<div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 py-1"><span
 if(c.s)r+=`<div class="flex flex-wrap items-baseline gap-x-2 gap-y-1 py-1"><span class="min-w-[4.5rem] shrink-0 text-[10px] font-bold uppercase tracking-wider text-[var(--text-muted)]">Std Dev</span><span class="katex-inline text-[var(--text)]">${tex(c.s)}</span></div>`;
 mv=`<div class="rounded-xl border border-[var(--border)] bg-[var(--surface-inset)] px-3.5 py-3 sm:px-4" style="border-left:3px solid ${c.color}"><p class="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">Mean, variance &amp; SD</p><div style="color:${c.accent}">${r}</div></div>`;}
 ch=`
-<div class="animate-slide-up w-full max-w-full ${deckAnimCls}">
-<div id="flashcard-anchor" tabindex="0" class="card-perspective mb-2 w-full cursor-pointer touch-manipulation rounded-2xl outline-none active:scale-[0.995] focus-visible:ring-2 focus-visible:ring-[#3d62d0] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ring-offset)] sm:mb-0 sm:active:scale-100" onclick="doFlip()" role="button" aria-label="Flip card. Tap or use Flip button.">
+<div class="animate-slide-up w-full min-w-0 max-w-full ${deckAnimCls}">
+<div id="flashcard-anchor" tabindex="0" class="card-perspective mb-2 w-full min-w-0 max-w-full cursor-pointer touch-manipulation rounded-2xl outline-none active:scale-[0.995] focus-visible:ring-2 focus-visible:ring-[#3d62d0] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--ring-offset)] sm:mb-0 sm:active:scale-100" onclick="doFlip()" role="button" aria-label="Flip card. Tap or use Flip button.">
 <div class="card-inner ${flp?'flipped':''}">
-<div class="card-face flex flex-col items-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 text-center shadow-card sm:p-8" style="border-left-width:4px;border-left-color:${c.color}">
+<div class="card-face flex flex-col items-center rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 text-center shadow-card xs:p-5 sm:p-8" style="border-left-width:4px;border-left-color:${c.color}">
 <div class="mb-4 flex w-full items-start justify-between gap-3">
 <span class="text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text-muted)]">Question</span>
 <span class="shrink-0 rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-white/95 shadow-sm" style="background:${c.color}cc">${escAttr(c.cat)}</span>
 </div>
 <p class="mb-2 w-full text-center text-sm font-semibold leading-snug text-[var(--text)] sm:text-base">${c.title}</p>
-<div class="katex-card-symbol mb-4 sm:mb-5" style="color:${c.accent}">${tex(c.sym)}</div>
-<p class="max-w-prose font-serif text-[clamp(1.125rem,3.8vw,1.35rem)] leading-snug text-[var(--text)]">${c.front}</p>
+<div class="katex-card-symbol mb-3 w-full max-w-full sm:mb-5" style="color:${c.accent}">${tex(c.sym)}</div>
+<p class="w-full max-w-full font-serif text-[clamp(1.05rem,3.4vw,1.35rem)] leading-snug text-[var(--text)] sm:max-w-prose">${c.front}</p>
 <p class="mt-6 flex items-center justify-center gap-2 text-xs text-[var(--text-muted)] sm:mt-8"><span class="inline-flex h-9 w-9 items-center justify-center rounded-full text-base" style="background:var(--icon-bg);color:var(--icon-fg)" aria-hidden="true">&#8635;</span><span>Tap card or <strong class="font-semibold text-[var(--text-hint)]">Flip</strong> to reveal</span></p>
 </div>
-<div class="card-face card-back card-back-scroll flex flex-col gap-3 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-4 text-left shadow-card sm:gap-4 sm:p-6" style="border-left-width:4px;border-left-color:${c.color}">
+<div class="card-face card-back card-back-scroll flex flex-col gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface-2)] p-3 text-left shadow-card xs:gap-3 xs:p-4 sm:gap-4 sm:p-6" style="border-left-width:4px;border-left-color:${c.color}">
 <div class="flex flex-wrap items-center gap-2">
 <span class="inline-flex rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white shadow-sm" style="background:${c.color}dd">Answer</span>
 <span class="text-xs font-semibold text-[var(--text-muted)]">${c.title}</span>
 </div>
-<p class="text-[15px] leading-relaxed text-[var(--text)] sm:text-base">${c.back}</p>
+<p class="text-[0.9375rem] leading-relaxed text-[var(--text)] sm:text-base">${c.back}</p>
 <div class="rounded-xl border border-[var(--border)] bg-[var(--surface-3)] px-3 py-3 sm:px-4" style="border-left:3px solid ${c.color}">
 <p class="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[var(--text-muted)]">Key formula</p>
 <div style="color:${c.accent}">${fml}</div>
@@ -711,9 +736,9 @@ ${mv}
 </div></div></div>
 <div class="mt-6 flex w-full flex-col gap-3 sm:mt-8">
 <div class="flex w-full gap-2 sm:gap-3">
-<button type="button" class="flex min-h-[48px] min-w-[5.5rem] shrink-0 touch-manipulation items-center justify-center gap-1 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-3 text-sm font-semibold text-[var(--text)] shadow-md transition hover:opacity-90 active:scale-[0.98] focus-ring disabled:cursor-not-allowed disabled:opacity-40 sm:min-w-[6.5rem]" onclick="event.stopPropagation();goPrev()" ${cur===0?'disabled':''} aria-label="Previous card"><span aria-hidden="true">&#8592;</span><span class="hidden sm:inline">Prev</span></button>
-<button type="button" class="min-h-[48px] flex-1 touch-manipulation rounded-xl bg-[#3d62d0] px-4 text-sm font-semibold text-white shadow-lg shadow-blue-900/25 transition hover:bg-[#4d72e0] active:scale-[0.98] focus-ring dark:shadow-blue-900/30 sm:text-base" onclick="event.stopPropagation();doFlip()" aria-label="Flip card">Flip</button>
-<button type="button" class="flex min-h-[48px] min-w-[5.5rem] shrink-0 touch-manipulation items-center justify-center gap-1 rounded-xl border border-[var(--border)] px-3 text-sm font-semibold text-[var(--text)] shadow-md transition active:scale-[0.98] focus-ring disabled:cursor-not-allowed disabled:opacity-40 sm:min-w-[6.5rem]" onclick="event.stopPropagation();goNext()" ${cur>=f.length-1?'disabled':''} style="background:color-mix(in srgb,${c.color} 28%, var(--surface-2));border-color:color-mix(in srgb,${c.color} 45%, var(--border))" aria-label="Next card"><span class="hidden sm:inline">Next</span><span aria-hidden="true">&#8594;</span></button>
+<button type="button" class="flex min-h-[48px] min-w-[3.25rem] shrink-0 touch-manipulation items-center justify-center gap-0.5 rounded-xl border border-[var(--border)] bg-[var(--surface-2)] px-2 text-sm font-semibold text-[var(--text)] shadow-md transition hover:opacity-90 active:scale-[0.98] focus-ring disabled:cursor-not-allowed disabled:opacity-40 xs:min-w-[5rem] xs:gap-1 xs:px-3 sm:min-w-[6.5rem]" onclick="event.stopPropagation();goPrev()" ${cur===0?'disabled':''} aria-label="Previous card"><span aria-hidden="true">&#8592;</span><span class="hidden xs:inline">Prev</span></button>
+<button type="button" class="min-h-[48px] min-w-0 flex-1 touch-manipulation rounded-xl bg-[#3d62d0] px-3 text-sm font-semibold text-white shadow-lg shadow-blue-900/25 transition hover:bg-[#4d72e0] active:scale-[0.98] focus-ring dark:shadow-blue-900/30 sm:px-4 sm:text-base" onclick="event.stopPropagation();doFlip()" aria-label="Flip card">Flip</button>
+<button type="button" class="flex min-h-[48px] min-w-[3.25rem] shrink-0 touch-manipulation items-center justify-center gap-0.5 rounded-xl border border-[var(--border)] px-2 text-sm font-semibold text-[var(--text)] shadow-md transition active:scale-[0.98] focus-ring disabled:cursor-not-allowed disabled:opacity-40 xs:min-w-[5rem] xs:gap-1 xs:px-3 sm:min-w-[6.5rem]" onclick="event.stopPropagation();goNext()" ${cur>=f.length-1?'disabled':''} style="background:color-mix(in srgb,${c.color} 28%, var(--surface-2));border-color:color-mix(in srgb,${c.color} 45%, var(--border))" aria-label="Next card"><span class="hidden xs:inline">Next</span><span aria-hidden="true">&#8594;</span></button>
 </div>
 <button type="button" class="min-h-[48px] w-full touch-manipulation rounded-xl border px-4 py-3 text-sm font-semibold transition active:scale-[0.98] focus-ring sm:text-base ${ik?'border-emerald-500/40 bg-emerald-500/10 text-emerald-800 dark:border-emerald-500/50 dark:text-emerald-200':'border-[var(--border)] bg-[var(--surface-2)] text-[var(--text-hint)] hover:opacity-90'}" onclick="event.stopPropagation();togKnown()">${ik?'\u2713 Marked as learned':'Mark as learned'}</button>
 <p class="text-center text-[11px] leading-relaxed text-[var(--text-muted)] sm:text-xs">Tap card or <strong class="font-medium text-[var(--text-hint)]">Flip</strong> \u00b7 <strong class="font-medium text-[var(--text-hint)]">\u2190 \u2192</strong> or swipe \u00b7 <strong class="font-medium text-[var(--text-hint)]">Space</strong> flips</p>
@@ -764,6 +789,7 @@ ${showSearchDrop&&srch.trim().length>0?'<ul id="search-suggestions" role="listbo
 </div>
 <span class="min-w-[3.25rem] text-right font-mono text-xs font-semibold text-emerald-600 dark:text-emerald-400 sm:text-sm">${lc}/${f.length}</span>
 </div>
+${deckHint}
 <div class="dots-scroll mb-6 flex max-w-full gap-1.5 overflow-x-auto overflow-y-hidden pb-1 [-ms-overflow-style:none] [scrollbar-width:thin] sm:mb-8 sm:flex-wrap sm:justify-center sm:overflow-x-visible">${dots}</div>
 ${ch}
 </section>
